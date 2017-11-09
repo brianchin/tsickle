@@ -81,6 +81,15 @@ describe('emitWithTsickle', () => {
     expect(jsSources['./a.js']).to.contain('exports.x = 2;');
   });
 
+  it('should omit interface fields that are optional', () => {
+    const tsSources = {
+      'a.ts': `export interface Foo { bar: number; baz?: string }`,
+    };
+
+    const jsSources = emitWithTsickle(tsSources);
+    expect(jsSources['./a.js']).to.contain('Foo.prototype.bar;');
+    expect(jsSources['./a.js']).to.not.contain('Foo.prototype.baz;');
+  });
 
   describe('regressions', () => {
     it('should produce correct .d.ts files when expanding `export *` with es2015 module syntax',

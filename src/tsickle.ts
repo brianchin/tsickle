@@ -1252,6 +1252,7 @@ class Annotator extends ClosureRewriter {
     const memberNamespace = [name, 'prototype'];
     for (const elem of iface.members) {
       const isOptional = elem.questionToken != null;
+      if (isOptional) continue;
       this.visitProperty(memberNamespace, elem, isOptional);
     }
     this.emit(`}\n`);
@@ -1719,6 +1720,17 @@ class ExternsWriter extends ClosureRewriter {
     // Process everything except (MethodSignature|MethodDeclaration|Constructor)
     const methods = new Map<string, ts.MethodDeclaration[]>();
     for (const member of decl.members) {
+      // Typescript allows for optional fields in interfaces (marked with a '?' token).
+      // Closure does not allow us to provide a type for optional fields, as it has the
+      // stronger assumption that all declared fields must not be undefined (and may be
+      // null). The closest correct thing we can do is to simply skip the field. Since
+      // Closure records use structural subtyping, this can only grow the set of types
+      // the record can be used with, although this reduces precision.
+      if (decl.kind === ts.SyntaxKind.InterfaceDeclaration &&
+          typeof (member as ts.TypeElement).questionToken !== 'undefined') {
+        continue;
+      }
+
       switch (member.kind) {
         case ts.SyntaxKind.PropertySignature:
         case ts.SyntaxKind.PropertyDeclaration:
